@@ -6,7 +6,6 @@ require "active_support/core_ext/hash/slice"
 require "active_support/core_ext/enumerable"
 require "active_support/core_ext/array/extract_options"
 require "active_support/core_ext/regexp"
-require "action_dispatch/routing"
 require "action_dispatch/routing/redirection"
 require "action_dispatch/routing/endpoint"
 
@@ -471,7 +470,6 @@ module ActionDispatch
         # When a pattern points to an internal route, the route's `:action` and
         # `:controller` should be set in options or hash shorthand. Examples:
         #
-        #     match 'photos/:id' => 'photos#show', via: :get
         #     match 'photos/:id', to: 'photos#show', via: :get
         #     match 'photos/:id', controller: 'photos', action: 'show', via: :get
         #
@@ -615,10 +613,6 @@ module ActionDispatch
         #
         #     mount SomeRackApp, at: "some_route"
         #
-        # Alternatively:
-        #
-        #     mount(SomeRackApp => "some_route")
-        #
         # For options, see `match`, as `mount` uses it internally.
         #
         # All mounted applications come with routing helpers to access them. These are
@@ -626,7 +620,7 @@ module ActionDispatch
         # `some_rack_app_path` or `some_rack_app_url`. To customize this helper's name,
         # use the `:as` option:
         #
-        #     mount(SomeRackApp => "some_route", as: "exciting")
+        #     mount(SomeRackApp, at: "some_route", as: "exciting")
         #
         # This will generate the `exciting_path` and `exciting_url` helpers which can be
         # used to navigate to this mounted app.
@@ -637,6 +631,7 @@ module ActionDispatch
             options = app
             app, path = options.find { |k, _| k.respond_to?(:call) }
             options.delete(app) if app
+            hash_key_app = true
           end
 
           raise ArgumentError, "A rack application must be specified" unless app.respond_to?(:call)
@@ -646,6 +641,18 @@ module ActionDispatch
               mount SomeRackApp, at: "some_route"
               or
               mount(SomeRackApp => "some_route")
+          MSG
+          ActionDispatch.deprecator.warn(<<-MSG.squish) if hash_key_app
+            Mounting an engine with a hash key name is deprecated and
+            will be removed in Rails 8.1. Please use the `at:` option instead.
+
+            Instead of:
+
+              mount(SomeRackApp => "some_route")
+
+            Please use:
+
+              mount SomeRackApp, at: "some_route"
           MSG
 
           rails_app = rails_app? app
@@ -1673,7 +1680,6 @@ module ActionDispatch
         # Matches a URL pattern to one or more routes. For more information, see
         # [match](rdoc-ref:Base#match).
         #
-        #     match 'path' => 'controller#action', via: :patch
         #     match 'path', to: 'controller#action', via: :post
         #     match 'path', 'otherpath', on: :member, via: :get
         def match(path, *rest, &block)
@@ -1682,6 +1688,20 @@ module ActionDispatch
             path, to = options.find { |name, _value| name.is_a?(String) }
 
             raise ArgumentError, "Route path not specified" if path.nil?
+
+            ActionDispatch.deprecator.warn(<<-MSG.squish)
+              Drawing a route with a hash key name is deprecated and
+              will be removed in Rails 8.1. Please use the `to:` option with
+              "controller#action" syntax instead.
+
+              Instead of:
+
+                match "path" => "controller#action`
+
+              Please use:
+
+                match "path", to: "controller#action"
+            MSG
 
             case to
             when Symbol
@@ -1935,6 +1955,11 @@ module ActionDispatch
           end
 
           def map_match(paths, options)
+            ActionDispatch.deprecator.warn(<<-MSG.squish) if paths.count > 1
+              Mapping a route with multiple paths is deprecated and
+              will be removed in Rails 8.1. Please use multiple method calls instead.
+            MSG
+
             if (on = options[:on]) && !VALID_ON_OPTIONS.include?(on)
               raise ArgumentError, "Unknown scope #{on.inspect} given to :on"
             end
@@ -2267,9 +2292,9 @@ module ActionDispatch
 
         attr_reader :parent, :scope_level
 
-        def initialize(hash, parent = NULL, scope_level = nil)
-          @hash = hash
+        def initialize(hash, parent = ROOT, scope_level = nil)
           @parent = parent
+          @hash = parent ? parent.frame.merge(hash) : hash
           @scope_level = scope_level
         end
 
@@ -2282,7 +2307,7 @@ module ActionDispatch
         end
 
         def root?
-          @parent.null?
+          @parent == ROOT
         end
 
         def resources?
@@ -2327,23 +2352,22 @@ module ActionDispatch
         end
 
         def [](key)
-          scope = find { |node| node.frame.key? key }
-          scope && scope.frame[key]
+          frame[key]
         end
+
+        def frame; @hash; end
 
         include Enumerable
 
         def each
           node = self
-          until node.equal? NULL
+          until node.equal? ROOT
             yield node
             node = node.parent
           end
         end
 
-        def frame; @hash; end
-
-        NULL = Scope.new(nil, nil)
+        ROOT = Scope.new({}, nil)
       end
 
       def initialize(set) # :nodoc:

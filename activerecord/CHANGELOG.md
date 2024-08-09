@@ -1,3 +1,34 @@
+*   PostgreSQLAdapter: Allow `disable_extension` to be called with schema-qualified name.
+
+    For parity with `enable_extension`, the `disable_extension` method can be called with a schema-qualified
+    name (e.g. `disable_extension "myschema.pgcrypto"`). Note that PostgreSQL's `DROP EXTENSION` does not
+    actually take a schema name (unlike `CREATE EXTENSION`), so the resulting SQL statement will only name
+    the extension, e.g. `DROP EXTENSION IF EXISTS "pgcrypto"`.
+
+    *Tony Novak*
+
+*   Make `create_schema` / `drop_schema` reversible in migrations.
+
+    Previously, `create_schema` and `drop_schema` were irreversible migration operations.
+
+    *Tony Novak*
+
+*   Support batching using custom columns.
+
+    ```ruby
+    Product.in_batches(cursor: [:shop_id, :id]) do |relation|
+      # do something with relation
+    end
+    ```
+
+    *fatkodima*
+
+*   Use SQLite `IMMEDIATE` transactions when possible.
+
+    Transactions run against the SQLite3 adapter default to IMMEDIATE mode to improve concurrency support and avoid busy exceptions.
+
+    *Stephen Margheim*
+
 *   Raise specific exception when a connection is not defined.
 
      The new `ConnectionNotDefined` exception provides connection name, shard and role accessors indicating the details of the connection that was requested.
@@ -71,12 +102,6 @@
     ```
 
     *Nony Dutton*
-
-*   Optimize `Relation#exists?` when records are loaded and the relation has no conditions.
-
-    This can avoid queries in some cases.
-
-    *fatkodima*
 
 *   Add a `filter` option to `in_order_of` to prioritize certain values in the sorting without filtering the results
     by these values.

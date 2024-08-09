@@ -2130,6 +2130,13 @@ If set to `false`, when both headers are present, both headers are checked and b
 | (original)            | `false`               |
 | 8.0                   | `true`                |
 
+#### `config.action_dispatch.always_write_cookie`
+
+Cookies will be written at the end of a request if they marked as insecure, if the request is made over SSL, or if the request is made to an onion service.
+
+If set to `true`, cookies will be written even if this criteria is not met.
+
+This defaults to `true` in `development`, and `false` in all other environments.
 
 #### `ActionDispatch::Callbacks.before`
 
@@ -3150,7 +3157,7 @@ default to _replacing_ the current collection instead of _appending_ to it. Thus
 to support submitting an _empty_ collection, when `multiple_file_field_include_hidden`
 is `true`, the [`file_field`](https://api.rubyonrails.org/classes/ActionView/Helpers/FormBuilder.html#method-i-file_field)
 helper will render an auxiliary hidden field, similar to the auxiliary field
-rendered by the [`check_box`](https://api.rubyonrails.org/classes/ActionView/Helpers/FormBuilder.html#method-i-check_box)
+rendered by the [`checkbox`](https://api.rubyonrails.org/classes/ActionView/Helpers/FormBuilder.html#method-i-checkbox)
 helper.
 
 The default value depends on the `config.load_defaults` target version:
@@ -3734,6 +3741,7 @@ These are the load hooks you can use in your own code. To hook into the initiali
 | `ActiveJob::Base`                    | `active_job`                         |
 | `ActiveJob::TestCase`                | `active_job_test_case`               |
 | `ActiveModel::Model`                 | `active_model`                       |
+| `ActiveModel::Translation`           | `active_model_translation`           |
 | `ActiveRecord::Base`                 | `active_record`                      |
 | `ActiveRecord::TestFixtures`         | `active_record_fixtures`             |
 | `ActiveRecord::ConnectionAdapters::PostgreSQLAdapter`    | `active_record_postgresqladapter`    |

@@ -187,7 +187,7 @@ To keep using the current cache store, you can turn off cache versioning entirel
       if config.active_record.warn_on_records_fetched_greater_than
         ActiveRecord.deprecator.warn <<~MSG.squish
           `config.active_record.warn_on_records_fetched_greater_than` is deprecated and will be
-          removed in Rails 7.3.
+          removed in Rails 8.0.
           Please subscribe to `sql.active_record` notifications and access the row count field to
           detect large result set sizes.
         MSG
@@ -385,7 +385,7 @@ To keep using the current cache store, you can turn off cache versioning entirel
       config.after_initialize do
         if app.config.active_record.query_log_tags_enabled
           ActiveRecord.query_transformers << ActiveRecord::QueryLogs
-          ActiveRecord::QueryLogs.taggings.merge!(
+          ActiveRecord::QueryLogs.taggings = ActiveRecord::QueryLogs.taggings.merge(
             application:  Rails.application.class.name.split("::").first,
             pid:          -> { Process.pid.to_s },
             socket:       ->(context) { context[:connection].pool.db_config.socket },
@@ -400,7 +400,7 @@ To keep using the current cache store, you can turn off cache versioning entirel
           end
 
           if app.config.active_record.query_log_tags_format
-            ActiveRecord::QueryLogs.update_formatter(app.config.active_record.query_log_tags_format)
+            ActiveRecord::QueryLogs.tags_formatter = app.config.active_record.query_log_tags_format
           end
 
           if app.config.active_record.cache_query_log_tags
